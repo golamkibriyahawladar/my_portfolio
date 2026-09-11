@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Volume2, VolumeX, Mic, Play, Pause, Sparkles, MessageSquare } from 'lucide-react'
+import { Volume2, VolumeX, Play, Sparkles, Settings2, Check, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface SectionVoiceConfig {
@@ -43,95 +43,77 @@ export function VoiceGuide() {
   const [currentText, setCurrentText] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState<string>('hero')
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string>('')
+  const [showVoiceMenu, setShowVoiceMenu] = useState(false)
+
   const spokenSectionsRef = useRef<Set<string>>(new Set())
   const synthRef = useRef<SpeechSynthesis | null>(null)
+  const hasStartedRef = useRef(false)
 
-  // Initialize SpeechSynthesis on client & set ON by default
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      synthRef.current = window.speechSynthesis
-      const saved = localStorage.getItem('portfolio-voice-guide')
-      if (saved === 'false') {
-        setEnabled(false)
-      } else {
-        setEnabled(true)
-      }
+  // Populate available English voices
+  const populateVoices = useCallback(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
-      // Initial welcome speech on load
-      const triggerWelcome = () => {
-        if (saved !== 'false' && !spokenSectionsRef.current.has('hero')) {
-          const script = SECTION_SCRIPTS[0]
-          const utterance = new SpeechSynthesisUtterance(script.text)
-          utterance.rate = 0.95
-          utterance.pitch = 1.0
-          utterance.volume = 1.0
+    const available = window.speechSynthesis.getVoices()
+    const englishVoices = available.filter(
+      (v) => v.lang.startsWith('en') || v.lang.startsWith('en-US') || v.lang.startsWith('en-GB')
+    )
 
-          const voices = window.speechSynthesis.getVoices()
-          const preferredVoice =
-            voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) ||
-            voices.find((v) => v.lang.startsWith('en'))
-          if (preferredVoice) utterance.voice = preferredVoice
+    setVoices(englishVoices.length > 0 ? englishVoices : available)
 
-          utterance.onstart = () => {
-            setIsSpeaking(true)
-            setCurrentText(script.text)
-            spokenSectionsRef.current.add('hero')
-          }
-          utterance.onend = () => {
-            setIsSpeaking(false)
-            setTimeout(() => setCurrentText(null), 3000)
-          }
+    const savedVoice = localStorage.getItem('portfolio-voice-name')
+    if (savedVoice && available.some((v) => v.name === savedVoice)) {
+      setSelectedVoiceName(savedVoice)
+    } else {
+      // Pick best natural voice automatically
+      const best =
+        available.find(
+          (v) =>
+            v.lang.startsWith('en') &&
+            (v.name.includes('Natural') ||
+              v.name.includes('Google') ||
+              v.name.includes('Samantha') ||
+              v.name.includes('Jenny') ||
+              v.name.includes('Aria') ||
+              v.name.includes('Daniel'))
+        ) || available.find((v) => v.lang.startsWith('en'))
 
-          window.speechSynthesis.cancel()
-          window.speechSynthesis.speak(utterance)
-        }
-      }
-
-      // Trigger after voices load or user interacts once (to bypass browser audio restrictions)
-      if (window.speechSynthesis.getVoices().length > 0) {
-        triggerWelcome()
-      } else {
-        window.speechSynthesis.onvoiceschanged = triggerWelcome
-      }
-
-      const handleFirstInteraction = () => {
-        if (!spokenSectionsRef.current.has('hero')) {
-          triggerWelcome()
-        }
-        window.removeEventListener('click', handleFirstInteraction)
-        window.removeEventListener('scroll', handleFirstInteraction)
-      }
-
-      window.addEventListener('click', handleFirstInteraction, { once: true })
-      window.addEventListener('scroll', handleFirstInteraction, { once: true })
-
-      return () => {
-        window.removeEventListener('click', handleFirstInteraction)
-        window.removeEventListener('scroll', handleFirstInteraction)
+      if (best) {
+        setSelectedVoiceName(best.name)
       }
     }
   }, [])
 
+  // Core Speech Dispatcher
   const speak = useCallback(
-    (text: string, sectionId?: string) => {
-      if (!synthRef.current || !enabled) return
+    (text: string, sectionId?: string, forceVoiceName?: string) => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window) || !enabled) return
 
-      // Cancel previous speech
-      synthRef.current.cancel()
+      window.speechSynthesis.cancel()
 
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 0.95
-      utterance.pitch = 1.0
+      utterance.rate = 0.92
+      utterance.pitch = 1.02
       utterance.volume = 1.0
 
-      // Try selecting an English natural voice if available
-      const voices = synthRef.current.getVoices()
-      const preferredVoice =
-        voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) ||
-        voices.find((v) => v.lang.startsWith('en'))
+      const avail = window.speechSynthesis.getVoices()
+      const targetName = forceVoiceName || selectedVoiceName
 
-      if (preferredVoice) {
-        utterance.voice = preferredVoice
+      const chosenVoice =
+        avail.find((v) => v.name === targetName) ||
+        avail.find(
+          (v) =>
+            v.lang.startsWith('en') &&
+            (v.name.includes('Natural') ||
+              v.name.includes('Google') ||
+              v.name.includes('Samantha') ||
+              v.name.includes('Jenny'))
+        ) ||
+        avail.find((v) => v.lang.startsWith('en'))
+
+      if (chosenVoice) {
+        utterance.voice = chosenVoice
       }
 
       utterance.onstart = () => {
@@ -152,28 +134,56 @@ export function VoiceGuide() {
         setCurrentText(null)
       }
 
-      synthRef.current.speak(utterance)
+      window.speechSynthesis.speak(utterance)
     },
-    [enabled]
+    [enabled, selectedVoiceName]
   )
 
-  const toggleVoiceGuide = () => {
-    const nextState = !enabled
-    setEnabled(nextState)
-    localStorage.setItem('portfolio-voice-guide', String(nextState))
+  // Initialize Speech & Auto-Play on page enter / gesture
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
-    if (nextState) {
-      // Speak current section script immediately
-      const script = SECTION_SCRIPTS.find((s) => s.id === currentSection) || SECTION_SCRIPTS[0]
-      speak(script.text, script.id)
-    } else {
-      if (synthRef.current) {
-        synthRef.current.cancel()
-      }
-      setIsSpeaking(false)
-      setCurrentText(null)
+    synthRef.current = window.speechSynthesis
+    const savedState = localStorage.getItem('portfolio-voice-guide')
+    if (savedState === 'false') {
+      setEnabled(false)
     }
-  }
+
+    populateVoices()
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = populateVoices
+    }
+
+    const startWelcome = () => {
+      if (hasStartedRef.current) return
+      hasStartedRef.current = true
+
+      const saved = localStorage.getItem('portfolio-voice-guide')
+      if (saved !== 'false' && !spokenSectionsRef.current.has('hero')) {
+        speak(SECTION_SCRIPTS[0].text, 'hero')
+      }
+    }
+
+    // Modern browsers allow speech synthesis immediately or upon any gesture
+    startWelcome()
+
+    const handleUserGesture = () => {
+      startWelcome()
+      window.removeEventListener('pointerdown', handleUserGesture)
+      window.removeEventListener('scroll', handleUserGesture)
+      window.removeEventListener('keydown', handleUserGesture)
+    }
+
+    window.addEventListener('pointerdown', handleUserGesture, { once: true })
+    window.addEventListener('scroll', handleUserGesture, { once: true })
+    window.addEventListener('keydown', handleUserGesture, { once: true })
+
+    return () => {
+      window.removeEventListener('pointerdown', handleUserGesture)
+      window.removeEventListener('scroll', handleUserGesture)
+      window.removeEventListener('keydown', handleUserGesture)
+    }
+  }, [populateVoices, speak])
 
   // Section Observer
   useEffect(() => {
@@ -205,6 +215,33 @@ export function VoiceGuide() {
     return () => observer.disconnect()
   }, [enabled, speak])
 
+  const toggleVoiceGuide = () => {
+    const nextState = !enabled
+    setEnabled(nextState)
+    localStorage.setItem('portfolio-voice-guide', String(nextState))
+
+    if (nextState) {
+      const script = SECTION_SCRIPTS.find((s) => s.id === currentSection) || SECTION_SCRIPTS[0]
+      speak(script.text, script.id)
+    } else {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+      setIsSpeaking(false)
+      setCurrentText(null)
+    }
+  }
+
+  const changeVoice = (voiceName: string) => {
+    setSelectedVoiceName(voiceName)
+    localStorage.setItem('portfolio-voice-name', voiceName)
+    setShowVoiceMenu(false)
+
+    // Replay sample using newly chosen voice
+    const sampleText = `Voice changed to ${voiceName.split(' ')[0]}. Here is a preview of the audio guide.`
+    speak(sampleText, undefined, voiceName)
+  }
+
   const replayCurrent = () => {
     const script = SECTION_SCRIPTS.find((s) => s.id === currentSection) || SECTION_SCRIPTS[0]
     speak(script.text, script.id)
@@ -212,7 +249,7 @@ export function VoiceGuide() {
 
   return (
     <>
-      {/* Floating Toggle Button */}
+      {/* Floating Controller Widget */}
       <div className="fixed bottom-6 left-6 z-40 flex items-center gap-2">
         <button
           onClick={toggleVoiceGuide}
@@ -221,12 +258,12 @@ export function VoiceGuide() {
               ? 'bg-[#a3e635]/15 border-[#a3e635]/40 text-[#a3e635] shadow-[#a3e635]/10'
               : 'bg-[#121218]/90 border-white/10 text-white/60 hover:text-white hover:border-white/20'
           }`}
-          title={enabled ? 'Mute AI Voice Narrator' : 'Enable AI Voice Narrator'}
+          title={enabled ? 'Mute AI Voice Guide' : 'Enable AI Voice Guide'}
         >
           {enabled ? (
             <>
               <Volume2 className="w-3.5 h-3.5 text-[#a3e635]" />
-              <span className="font-semibold">Voice Narrator ON</span>
+              <span className="font-semibold">Voice Guide ON</span>
               {isSpeaking && (
                 <span className="flex items-end gap-0.5 h-3 px-1">
                   <span className="w-0.5 bg-[#a3e635] rounded-full animate-[bounce_0.8s_infinite] h-full" />
@@ -244,13 +281,72 @@ export function VoiceGuide() {
         </button>
 
         {enabled && (
-          <button
-            onClick={replayCurrent}
-            className="p-2 rounded-full bg-[#121218]/90 border border-white/10 text-white/60 hover:text-white transition-all text-xs"
-            title="Replay section audio"
-          >
-            <Play className="w-3 h-3 text-[#a3e635]" />
-          </button>
+          <>
+            <button
+              onClick={replayCurrent}
+              className="p-2 rounded-full bg-[#121218]/90 border border-white/10 text-white/60 hover:text-white transition-all text-xs"
+              title="Replay section audio"
+            >
+              <Play className="w-3 h-3 text-[#a3e635]" />
+            </button>
+
+            {/* Voice Accent & Voice Selector Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowVoiceMenu(!showVoiceMenu)}
+                className="p-2 rounded-full bg-[#121218]/90 border border-white/10 text-white/60 hover:text-white transition-all text-xs"
+                title="Choose AI Voice / Accent"
+              >
+                <Settings2 className="w-3 h-3 text-white/70" />
+              </button>
+
+              {/* Voice Choice Dropdown */}
+              <AnimatePresence>
+                {showVoiceMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowVoiceMenu(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                      className="absolute bottom-full left-0 mb-2 z-50 w-72 rounded-2xl bg-[#0e0e14] border border-white/15 shadow-2xl overflow-hidden p-2 backdrop-blur-xl"
+                    >
+                      <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
+                          Select AI Voice Accent
+                        </span>
+                        <User className="w-3 h-3 text-[#a3e635]" />
+                      </div>
+                      <div className="max-h-56 overflow-y-auto py-1 space-y-1">
+                        {voices.length > 0 ? (
+                          voices.map((v) => {
+                            const isSelected = v.name === selectedVoiceName
+                            return (
+                              <button
+                                key={v.name}
+                                onClick={() => changeVoice(v.name)}
+                                className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-colors ${
+                                  isSelected ? 'bg-[#a3e635]/15 text-[#a3e635]' : 'hover:bg-white/5 text-white/70'
+                                }`}
+                              >
+                                <div className="truncate pr-2">
+                                  <p className="font-medium text-[11px] truncate">{v.name}</p>
+                                  <p className="text-[9px] text-white/40 font-mono">{v.lang}</p>
+                                </div>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-[#a3e635] shrink-0" />}
+                              </button>
+                            )
+                          })
+                        ) : (
+                          <p className="p-3 text-xs text-white/40 text-center">Loading browser voices...</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
         )}
       </div>
 
