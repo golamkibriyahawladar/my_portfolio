@@ -1,17 +1,21 @@
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/reveal'
 import { SpotlightCard } from '@/components/spotlight-card'
+import { ProjectEstimator } from '@/components/project-estimator'
 import type { Service } from '@/lib/db/schema'
 
 export function StudioServices({ services }: { services: Service[] }) {
   return (
     <section id="services" className="border-t border-white/10">
       <div className="mx-auto max-w-[1600px] px-6 py-32 md:px-10">
-        <Reveal className="mb-16">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#a3e635]">02 — Services &amp; Capabilities</p>
-          <h2 className="mt-4 font-grotesk text-4xl sm:text-6xl font-medium tracking-tight text-white">
-            Specialized engineering <span className="text-lime-300">offerings</span>
-          </h2>
+        <Reveal className="mb-16 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#a3e635]">02 — Services &amp; Capabilities</p>
+            <h2 className="mt-4 font-grotesk text-4xl sm:text-6xl font-medium tracking-tight text-white">
+              Specialized engineering <span className="text-lime-300">offerings</span>
+            </h2>
+          </div>
+          <ProjectEstimator />
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {services.map((service, i) => (

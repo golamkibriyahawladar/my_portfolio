@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx --env-file=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "mcp": "tsx --env-file=.env.local scripts/mcp-server.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@vercel/analytics": "1.6.1",
     "better-auth": "^1.7.2",
     "class-variance-authority": "^0.7.1",

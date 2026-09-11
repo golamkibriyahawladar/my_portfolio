@@ -30,6 +30,21 @@ async function main() {
     await db.insert(schema.posts).values(post).onDuplicateKeyUpdate({ set: { title: post.title } })
   }
 
+  // Seed administrator account
+  const [existingUser] = await db.select().from(schema.user).limit(1)
+  if (!existingUser && process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    const { getAuth } = await import('../lib/auth')
+    const auth = getAuth()
+    await auth.api.signUpEmail({
+      body: {
+        name: 'Golam Kibriya Hawladar',
+        email: process.env.ADMIN_EMAIL,
+        password: process.env.ADMIN_PASSWORD,
+      },
+    })
+    console.log(`Admin user created: ${process.env.ADMIN_EMAIL}`)
+  }
+
   console.log('Seed complete')
   process.exit(0)
 }

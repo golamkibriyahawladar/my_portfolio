@@ -1,7 +1,9 @@
 'use server'
 
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
 import { getDb, isDatabaseConfigured, schema } from '@/lib/db'
+import { sendAdminNotificationEmail } from '@/lib/email'
 
 export type ContactState = { status: 'idle' } | { status: 'success' } | { status: 'error'; message: string }
 
@@ -30,6 +32,19 @@ export async function sendMessage(_prev: ContactState, formData: FormData): Prom
 
   try {
     await getDb().insert(schema.messages).values(parsed.data)
+
+    // Revalidate admin messages inbox and layout so badge updates immediately
+    revalidatePath('/admin', 'layout')
+    revalidatePath('/admin/messages')
+
+    // Dispatch real-time email notification to admin inbox
+    sendAdminNotificationEmail({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      subject: parsed.data.subject,
+      body: parsed.data.body,
+    }).catch((err) => console.error('[Contact Action] Background email failed:', err))
+
     return { status: 'success' }
   } catch (error) {
     console.error('Failed to store contact message', error)

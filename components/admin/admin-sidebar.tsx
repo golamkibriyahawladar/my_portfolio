@@ -12,6 +12,7 @@ import {
   Sparkles, 
   Mail, 
   Key, 
+  Cpu,
   ExternalLink, 
   LogOut,
   Menu,
@@ -48,6 +49,7 @@ export function AdminSidebar({ unreadMessagesCount = 0 }: AdminSidebarProps) {
       badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined 
     },
     { label: 'API Keys & cURL', href: '/admin/api-keys', icon: Key },
+    { label: 'MCP Server', href: '/admin/mcp', icon: Cpu },
   ]
 
   const handleSignOut = async () => {

@@ -4,6 +4,7 @@ import { StudioProjects } from '@/components/dark-studio/studio-projects'
 import { StudioAbout } from '@/components/dark-studio/studio-about'
 import { StudioServices } from '@/components/dark-studio/studio-services'
 import { StudioContact } from '@/components/dark-studio/studio-contact'
+import { ChatWidget } from '@/components/ai-chat/chat-widget'
 import { getProfile, getPublishedProjects, getServices, getSkills } from '@/lib/content'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,7 @@ export default async function HomePage() {
         <StudioServices services={services} />
       </main>
       <StudioContact profile={profile} />
+      <ChatWidget />
     </div>
   )
 }

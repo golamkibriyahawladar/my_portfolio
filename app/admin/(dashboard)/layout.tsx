@@ -19,7 +19,7 @@ export default async function AdminDashboardLayout({
       .select({ val: count() })
       .from(schema.messages)
       .where(eq(schema.messages.read, false))
-    unreadCount = row?.val ?? 0
+    unreadCount = Number(row?.val ?? 0)
   } catch (err) {
     console.error('Failed to fetch unread messages count', err)
   }

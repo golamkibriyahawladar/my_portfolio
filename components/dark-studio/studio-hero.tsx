@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { LiveStatus } from '@/components/live-status'
 import type { Profile, Skill } from '@/lib/db/schema'
 
 export function StudioHero({ profile, skills }: { profile: Profile; skills: Skill[] }) {
@@ -18,14 +19,17 @@ export function StudioHero({ profile, skills }: { profile: Profile; skills: Skil
       />
 
       <div className="relative mx-auto w-full max-w-[1600px]">
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 1 }}
-          className="mb-10 font-mono text-xs uppercase tracking-[0.2em] text-white/50"
+          className="mb-10 flex flex-wrap items-center justify-between gap-4 font-mono text-xs uppercase tracking-[0.2em] text-white/50"
         >
-          Portfolio — {new Date().getFullYear()} · {profile.location}
-        </motion.p>
+          <p>
+            Portfolio — {new Date().getFullYear()} · {profile.location}
+          </p>
+          <LiveStatus />
+        </motion.div>
 
         <h1 className="font-grotesk text-[clamp(3rem,11vw,11rem)] font-medium leading-[0.9] tracking-[-0.04em] text-white">
           {['Building', 'the web,', 'automating'].map((line, i) => (

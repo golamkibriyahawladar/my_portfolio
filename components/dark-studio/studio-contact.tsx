@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Reveal } from '@/components/reveal'
 import { ContactForm } from '@/components/dark-studio/contact-form'
+import { BookingModal } from '@/components/booking-modal'
+import { SpotifyStatus } from '@/components/spotify-status'
 import type { Profile } from '@/lib/db/schema'
 
 export function StudioContact({ profile, showForm = true }: { profile: Profile; showForm?: boolean }) {
@@ -21,22 +23,27 @@ export function StudioContact({ profile, showForm = true }: { profile: Profile; 
         </Reveal>
 
         <div className="mt-16 grid gap-16 md:grid-cols-12">
-          <Reveal delay={0.1} className="md:col-span-4">
-            <a
-              href={`mailto:${profile.email}`}
-              className="font-grotesk text-2xl text-white transition-colors hover:text-lime-300 md:text-3xl"
-            >
-              {profile.email}
-            </a>
-            <ul className="mt-10 flex flex-col gap-3 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
-              {profile.socials.map((s) => (
-                <li key={s.label}>
-                  <a href={s.href} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
-                    {s.label} ↗
-                  </a>
-                </li>
-              ))}
-            </ul>
+          <Reveal delay={0.1} className="md:col-span-4 flex flex-col justify-between">
+            <div>
+              <a
+                href={`mailto:${profile.email}`}
+                className="font-grotesk text-2xl text-white transition-colors hover:text-lime-300 md:text-3xl block mb-6"
+              >
+                {profile.email}
+              </a>
+              <div className="mb-8">
+                <BookingModal />
+              </div>
+              <ul className="flex flex-col gap-3 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
+                {profile.socials.map((s) => (
+                  <li key={s.label}>
+                    <a href={s.href} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
+                      {s.label} ↗
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </Reveal>
           {showForm && (
             <Reveal delay={0.2} className="md:col-span-8">
@@ -45,10 +52,13 @@ export function StudioContact({ profile, showForm = true }: { profile: Profile; 
           )}
         </div>
 
-        <div className="mt-24 flex flex-col gap-2 border-t border-white/10 pt-6 font-mono text-xs text-white/30 sm:flex-row sm:justify-between">
-          <p>
-            © {new Date().getFullYear()} {profile.name}
-          </p>
+        <div className="mt-24 flex flex-col gap-4 border-t border-white/10 pt-6 font-mono text-xs text-white/30 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-4">
+            <p>
+              © {new Date().getFullYear()} {profile.name}
+            </p>
+            <SpotifyStatus />
+          </div>
           <div className="flex gap-6">
             <Link href="/blog" className="transition-colors hover:text-white">
               Blog

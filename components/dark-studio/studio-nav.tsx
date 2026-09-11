@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Command } from 'lucide-react'
+import { AccentPicker } from '@/components/accent-picker'
+import { SoundToggle } from '@/components/sound-toggle'
 
 const links = [
   { label: 'Work', href: '/#work' },
@@ -16,17 +18,21 @@ const links = [
 export function StudioNav({ name, email }: { name: string; email: string }) {
   const [open, setOpen] = useState(false)
 
+  const triggerCommandPalette = () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))
+  }
+
   return (
     <>
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed inset-x-0 top-0 z-40 mix-blend-difference"
+        className="fixed inset-x-0 top-0 z-40 bg-[#0a0a0a]/60 backdrop-blur-md border-b border-white/5"
       >
         <nav
           aria-label="Primary"
-          className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-6 font-mono text-xs uppercase tracking-[0.15em] text-white md:px-10"
+          className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4 font-mono text-xs uppercase tracking-[0.15em] text-white md:px-10"
         >
           <Link href="/" className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-lime-300" aria-hidden="true" />
@@ -42,18 +48,35 @@ export function StudioNav({ name, email }: { name: string; email: string }) {
               </li>
             ))}
           </ul>
-          <a href={`mailto:${email}`} className="hidden transition-opacity hover:opacity-60 md:block">
-            {email}
-          </a>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="md:hidden"
-            aria-label="Open menu"
-            aria-expanded={open}
-          >
-            <Menu className="h-5 w-5" aria-hidden="true" />
-          </button>
+
+          <div className="flex items-center gap-3">
+            {/* Quick Command Palette Button */}
+            <button
+              onClick={triggerCommandPalette}
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-white/20 transition-all text-[11px] font-mono lowercase"
+              title="Search commands (Cmd+K)"
+            >
+              <Command className="w-3 h-3 text-lime-300" />
+              <span>⌘K</span>
+            </button>
+
+            <AccentPicker />
+            <SoundToggle />
+
+            <a href={`mailto:${email}`} className="hidden transition-opacity hover:opacity-60 lg:block">
+              {email}
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="md:hidden p-2 rounded-lg bg-white/5 border border-white/10 text-white"
+              aria-label="Open menu"
+              aria-expanded={open}
+            >
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         </nav>
       </motion.header>
 

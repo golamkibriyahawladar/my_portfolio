@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/custom-cursor'
+import { ParticleCanvas } from '@/components/particle-canvas'
+import { CommandPalette } from '@/components/command-palette'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -94,8 +96,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(globalPersonJsonLd) }}
         />
       </head>
-      <body className="antialiased bg-[#0a0a0a] text-white">
+      <body className="antialiased bg-[#0a0a0a] text-white relative min-h-screen">
+        <ParticleCanvas />
         <CustomCursor />
+        <CommandPalette />
         {children}
         <Toaster richColors position="top-right" theme="dark" />
         {process.env.NODE_ENV === 'production' && <Analytics />}

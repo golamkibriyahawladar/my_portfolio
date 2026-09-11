@@ -360,6 +360,8 @@ export async function markMessageRead(id: number, read: boolean) {
   const db = getDb()
 
   await db.update(schema.messages).set({ read }).where(eq(schema.messages.id, id))
+  revalidatePath('/admin', 'layout')
+  revalidatePath('/admin/messages')
   return { success: true }
 }
 
@@ -368,6 +370,8 @@ export async function deleteMessage(id: number) {
   const db = getDb()
 
   await db.delete(schema.messages).where(eq(schema.messages.id, id))
+  revalidatePath('/admin', 'layout')
+  revalidatePath('/admin/messages')
   return { success: true }
 }
 

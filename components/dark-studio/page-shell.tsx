@@ -1,5 +1,6 @@
 import { StudioNav } from '@/components/dark-studio/studio-nav'
 import { StudioContact } from '@/components/dark-studio/studio-contact'
+import { ChatWidget } from '@/components/ai-chat/chat-widget'
 import type { Profile } from '@/lib/db/schema'
 
 export function PageShell({ profile, children }: { profile: Profile; children: React.ReactNode }) {
@@ -8,6 +9,7 @@ export function PageShell({ profile, children }: { profile: Profile; children: R
       <StudioNav name={profile.name} email={profile.email} />
       <main className="pt-32">{children}</main>
       <StudioContact profile={profile} showForm={false} />
+      <ChatWidget />
     </div>
   )
 }
