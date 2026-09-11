@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
   User, 
@@ -11,11 +12,13 @@ import {
   Sparkles, 
   Mail, 
   Key, 
-  ExternalLink,
-  LogOut
+  ExternalLink, 
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
-import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface AdminSidebarProps {
   unreadMessagesCount?: number
@@ -24,6 +27,12 @@ interface AdminSidebarProps {
 export function AdminSidebar({ unreadMessagesCount = 0 }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Auto-close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   const navItems = [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
@@ -46,8 +55,8 @@ export function AdminSidebar({ unreadMessagesCount = 0 }: AdminSidebarProps) {
     router.push('/admin/login')
   }
 
-  return (
-    <aside className="w-64 bg-[#0a0a0c] border-r border-white/10 flex flex-col shrink-0 min-h-screen">
+  const navContent = (
+    <>
       {/* Brand Header */}
       <div className="h-16 border-b border-white/10 px-6 flex items-center justify-between">
         <Link href="/admin" className="flex items-center gap-2">
@@ -59,6 +68,16 @@ export function AdminSidebar({ unreadMessagesCount = 0 }: AdminSidebarProps) {
             <span className="text-[10px] text-white/40 block font-mono">Control Panel</span>
           </div>
         </Link>
+        {mobileOpen && (
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Nav links */}
@@ -73,6 +92,7 @@ export function AdminSidebar({ unreadMessagesCount = 0 }: AdminSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setMobileOpen(false)}
               className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group ${
                 isActive
                   ? 'bg-[#a3e635]/10 text-[#a3e635] border border-[#a3e635]/20'
@@ -115,6 +135,58 @@ export function AdminSidebar({ unreadMessagesCount = 0 }: AdminSidebarProps) {
           Sign Out
         </button>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile Topbar */}
+      <div className="md:hidden flex items-center justify-between h-14 px-4 bg-[#0a0a0c] border-b border-white/10 sticky top-0 z-30">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-[#a3e635]/15 border border-[#a3e635]/30 flex items-center justify-center font-mono font-bold text-[#a3e635] text-xs">
+            GK
+          </div>
+          <span className="font-semibold text-white tracking-tight text-xs">Portfolio CMS</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+              className="fixed inset-y-0 left-0 w-72 bg-[#0a0a0c] border-r border-white/10 z-50 flex flex-col md:hidden"
+            >
+              {navContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden md:flex md:w-64 bg-[#0a0a0c] border-r border-white/10 flex-col shrink-0 min-h-screen">
+        {navContent}
+      </aside>
+    </>
   )
 }
+

@@ -25,7 +25,7 @@ export default async function AdminDashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#070709] text-white flex">
+    <div className="min-h-screen bg-[#070709] text-white flex flex-col md:flex-row">
       <AdminSidebar unreadMessagesCount={unreadCount} />
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {children}

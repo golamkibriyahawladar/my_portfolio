@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { ImageUpload } from '@/components/admin/image-upload'
 import { Plus, Trash2, Save, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -160,15 +161,12 @@ export function ProfileEditorForm({ initialProfile }: ProfileEditorProps) {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs text-white/70">Portrait Image URL</Label>
-          <Input
-            value={portrait}
-            onChange={(e) => setPortrait(e.target.value)}
-            placeholder="/portrait.png or https://..."
-            className="bg-[#0c0c0f] border-white/10 text-white text-xs h-9 font-mono"
-          />
-        </div>
+        <ImageUpload
+          label="Portrait Photo"
+          value={portrait}
+          onChange={setPortrait}
+          helperText="Upload your official portrait picture (recommended square or 4:5 aspect ratio)"
+        />
       </div>
 
       {/* Stats Counter */}

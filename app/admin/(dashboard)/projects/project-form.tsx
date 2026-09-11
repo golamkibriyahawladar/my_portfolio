@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { TagInput } from '@/components/admin/tag-input'
 import { MarkdownEditor } from '@/components/admin/markdown-editor'
+import { ImageUpload } from '@/components/admin/image-upload'
 import { Save, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -190,16 +191,12 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs text-white/70">Project Cover Image URL</Label>
-          <Input
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-            required
-            placeholder="/projects/your-project.png"
-            className="bg-[#0c0c0f] border-white/10 text-white text-xs h-9 font-mono"
-          />
-        </div>
+        <ImageUpload
+          label="Project Cover Image"
+          value={image}
+          onChange={setImage}
+          helperText="Upload a preview screenshot from your computer or enter a public path"
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">

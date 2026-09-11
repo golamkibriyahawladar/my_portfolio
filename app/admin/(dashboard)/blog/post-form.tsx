@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { TagInput } from '@/components/admin/tag-input'
 import { MarkdownEditor } from '@/components/admin/markdown-editor'
+import { ImageUpload } from '@/components/admin/image-upload'
 import { Save, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -129,28 +130,23 @@ export function PostForm({ initialData }: PostFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-white/70">Category</Label>
-            <Input
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-              placeholder="e.g. AI & Automation, Web Development, GEO"
-              className="bg-[#0c0c0f] border-white/10 text-white text-xs h-9"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-white/70">Cover Image URL</Label>
-            <Input
-              value={cover}
-              onChange={(e) => setCover(e.target.value)}
-              placeholder="/projects/ai-support-agent.png or https://..."
-              className="bg-[#0c0c0f] border-white/10 text-white text-xs h-9 font-mono"
-            />
-          </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-white/70">Category</Label>
+          <Input
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            required
+            placeholder="e.g. AI & Automation, Web Development, GEO"
+            className="bg-[#0c0c0f] border-white/10 text-white text-xs h-9"
+          />
         </div>
+
+        <ImageUpload
+          label="Article Cover Image"
+          value={cover}
+          onChange={setCover}
+          helperText="Upload a featured image from your device or paste a URL"
+        />
 
         <div className="space-y-1.5">
           <Label className="text-xs text-white/70">Excerpt / Meta Description (SEO & GEO summary)</Label>
