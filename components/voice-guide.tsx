@@ -39,20 +39,75 @@ const SECTION_SCRIPTS: SectionVoiceConfig[] = [
 ]
 
 export function VoiceGuide() {
-  const [enabled, setEnabled] = useState(false)
+  const [enabled, setEnabled] = useState(true)
   const [currentText, setCurrentText] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState<string>('hero')
   const [isSpeaking, setIsSpeaking] = useState(false)
   const spokenSectionsRef = useRef<Set<string>>(new Set())
   const synthRef = useRef<SpeechSynthesis | null>(null)
 
-  // Initialize SpeechSynthesis on client
+  // Initialize SpeechSynthesis on client & set ON by default
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis
       const saved = localStorage.getItem('portfolio-voice-guide')
-      if (saved === 'true') {
+      if (saved === 'false') {
+        setEnabled(false)
+      } else {
         setEnabled(true)
+      }
+
+      // Initial welcome speech on load
+      const triggerWelcome = () => {
+        if (saved !== 'false' && !spokenSectionsRef.current.has('hero')) {
+          const script = SECTION_SCRIPTS[0]
+          const utterance = new SpeechSynthesisUtterance(script.text)
+          utterance.rate = 0.95
+          utterance.pitch = 1.0
+          utterance.volume = 1.0
+
+          const voices = window.speechSynthesis.getVoices()
+          const preferredVoice =
+            voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))) ||
+            voices.find((v) => v.lang.startsWith('en'))
+          if (preferredVoice) utterance.voice = preferredVoice
+
+          utterance.onstart = () => {
+            setIsSpeaking(true)
+            setCurrentText(script.text)
+            spokenSectionsRef.current.add('hero')
+          }
+          utterance.onend = () => {
+            setIsSpeaking(false)
+            setTimeout(() => setCurrentText(null), 3000)
+          }
+
+          window.speechSynthesis.cancel()
+          window.speechSynthesis.speak(utterance)
+        }
+      }
+
+      // Trigger after voices load or user interacts once (to bypass browser audio restrictions)
+      if (window.speechSynthesis.getVoices().length > 0) {
+        triggerWelcome()
+      } else {
+        window.speechSynthesis.onvoiceschanged = triggerWelcome
+      }
+
+      const handleFirstInteraction = () => {
+        if (!spokenSectionsRef.current.has('hero')) {
+          triggerWelcome()
+        }
+        window.removeEventListener('click', handleFirstInteraction)
+        window.removeEventListener('scroll', handleFirstInteraction)
+      }
+
+      window.addEventListener('click', handleFirstInteraction, { once: true })
+      window.addEventListener('scroll', handleFirstInteraction, { once: true })
+
+      return () => {
+        window.removeEventListener('click', handleFirstInteraction)
+        window.removeEventListener('scroll', handleFirstInteraction)
       }
     }
   }, [])
