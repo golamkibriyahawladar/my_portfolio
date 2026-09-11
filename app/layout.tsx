@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/custom-cursor'
 import { ParticleCanvas } from '@/components/particle-canvas'
 import { CommandPalette } from '@/components/command-palette'
+import { VoiceGuide } from '@/components/voice-guide'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -88,6 +89,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${playfair.variable} ${grotesk.variable} ${mono.variable}`}
     >
       <head>
@@ -100,6 +102,7 @@ export default function RootLayout({
         <ParticleCanvas />
         <CustomCursor />
         <CommandPalette />
+        <VoiceGuide />
         {children}
         <Toaster richColors position="top-right" theme="dark" />
         {process.env.NODE_ENV === 'production' && <Analytics />}

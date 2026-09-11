@@ -50,6 +50,8 @@
 }
 
 :root {
+  --accent: #a3e635;
+  --accent-glow: 163, 230, 53;
   color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -63,7 +65,6 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
@@ -83,6 +84,38 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Dynamic Accent Theme Overrides */
+.text-lime-300,
+.text-\[\#a3e635\] {
+  color: var(--accent) !important;
+}
+
+.bg-lime-300,
+.bg-\[\#a3e635\] {
+  background-color: var(--accent) !important;
+}
+
+.border-lime-300,
+.border-\[\#a3e635\] {
+  border-color: var(--accent) !important;
+}
+
+.hover\:text-lime-300:hover,
+.group:hover .group-hover\:text-lime-300,
+.group-hover\:text-lime-300:hover {
+  color: var(--accent) !important;
+}
+
+.hover\:bg-lime-300:hover,
+.group-hover\:bg-lime-300:hover {
+  background-color: var(--accent) !important;
+}
+
+.hover\:border-lime-300:hover,
+.group-hover\:border-lime-300:hover {
+  border-color: var(--accent) !important;
 }
 
 .dark {
