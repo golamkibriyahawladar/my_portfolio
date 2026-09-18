@@ -1,6 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
+import { eq } from 'drizzle-orm'
+import slugify from 'slugify'
 import { getDb, schema } from '../lib/db'
 import {
   getProfile,
@@ -13,8 +15,80 @@ import { sendAdminNotificationEmail } from '../lib/email'
 
 const server = new McpServer({
   name: 'golam-portfolio-mcp',
-  version: '1.0.0',
+  version: '1.1.0',
 })
+
+// Tool: Create and Publish Blog Post
+server.tool(
+  'create_blog_post',
+  'Create and publish a technical blog article directly to Golam Kibriya Hawladar portfolio database',
+  {
+    title: z.string().describe('Title of the blog post'),
+    content: z.string().describe('Full markdown content of the article with headings and code examples'),
+    excerpt: z.string().optional().describe('Short 1-2 sentence summary for preview'),
+    category: z.string().optional().describe('Category (e.g. "AI & Automation", "Next.js", "Engineering")'),
+    tags: z.array(z.string()).optional().describe('Keywords or tags'),
+    published: z.boolean().optional().describe('Whether to publish immediately (default: true)'),
+    slug: z.string().optional().describe('Optional custom URL slug'),
+  },
+  async ({ title, content, excerpt, category, tags, published, slug }) => {
+    const db = getDb()
+    const finalTitle = title.trim()
+    const finalContent = content.trim()
+    const finalCategory = category?.trim() || 'AI & Automation'
+    const finalExcerpt =
+      excerpt?.trim() ||
+      finalContent.slice(0, 160).replace(/[#*`_\[\]()]/g, '').trim() + '...'
+    const finalTags = tags && tags.length > 0 ? tags : ['AI', 'Tech']
+    const isPublished = published !== false
+
+    const baseSlug =
+      slug?.trim() ||
+      slugify(finalTitle, { lower: true, strict: true }) ||
+      `post-${Date.now()}`
+
+    const [existing] = await db
+      .select()
+      .from(schema.posts)
+      .where(eq(schema.posts.slug, baseSlug))
+      .limit(1)
+
+    const finalSlug = existing ? `${baseSlug}-${Date.now()}` : baseSlug
+
+    const [res] = await db.insert(schema.posts).values({
+      slug: finalSlug,
+      title: finalTitle,
+      category: finalCategory,
+      excerpt: finalExcerpt,
+      content: finalContent,
+      cover: '/projects/ai-support-agent.png',
+      tags: finalTags,
+      published: isPublished,
+      publishedAt: isPublished ? new Date() : null,
+    })
+
+    const postUrl = `https://my-portfolio-golam-kibriyas-projects.vercel.app/blog/${finalSlug}`
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              success: true,
+              message: `Blog post "${finalTitle}" published successfully!`,
+              id: res.insertId,
+              slug: finalSlug,
+              url: postUrl,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    }
+  }
+)
 
 // Tool: Get Profile Information
 server.tool(

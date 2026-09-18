@@ -7,11 +7,13 @@ import {
 } from '@/lib/content'
 import { getDb, schema } from '@/lib/db'
 import { sendAdminNotificationEmail } from '@/lib/email'
+import { eq } from 'drizzle-orm'
+import slugify from 'slugify'
 
 // ─── Server Info ────────────────────────────────────────────────
 export const MCP_SERVER_INFO = {
   name: 'golam-portfolio-mcp',
-  version: '1.0.0',
+  version: '1.1.0',
 }
 
 // ─── Tool Definitions (JSON Schema for MCP protocol) ───────────
@@ -22,6 +24,47 @@ export interface McpToolDefinition {
 }
 
 export const MCP_TOOLS: McpToolDefinition[] = [
+  {
+    name: 'create_blog_post',
+    description:
+      'Create and publish a new technical blog post directly on Golam Kibriya Hawladar portfolio. Stores full Markdown content, SEO excerpt, tags, and category in the database.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Title of the blog article (e.g. "How Generative Engine Optimization Works in 2026")',
+        },
+        content: {
+          type: 'string',
+          description:
+            'Full markdown content of the article with headings (##, ###), code snippets, bullet points, and callouts.',
+        },
+        excerpt: {
+          type: 'string',
+          description: 'Short 1-2 sentence compelling summary of the article for social sharing and search engines.',
+        },
+        category: {
+          type: 'string',
+          description: 'Category name (e.g. "AI & Automation", "Next.js & React", "Fintech", "Engineering")',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of relevant keyword tags (e.g. ["AI", "Agents", "Next.js"])',
+        },
+        published: {
+          type: 'boolean',
+          description: 'Set to true to publish immediately (live on site), or false to save as a draft.',
+        },
+        slug: {
+          type: 'string',
+          description: 'Optional custom URL slug (e.g. "generative-engine-optimization"). Auto-generated if omitted.',
+        },
+      },
+      required: ['title', 'content'],
+    },
+  },
   {
     name: 'get_portfolio_profile',
     description:
@@ -117,6 +160,93 @@ export async function executeTool(
   args: Record<string, any> = {}
 ): Promise<McpToolResult> {
   switch (toolName) {
+    case 'create_blog_post': {
+      if (!args.title || !args.content) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Error: Both "title" and "content" are required to create a blog post.',
+            },
+          ],
+          isError: true,
+        }
+      }
+
+      const db = getDb()
+      const title = String(args.title).trim()
+      const content = String(args.content).trim()
+      const category = (args.category && String(args.category).trim()) || 'AI & Automation'
+      const excerpt =
+        (args.excerpt && String(args.excerpt).trim()) ||
+        content.slice(0, 160).replace(/[#*`_\[\]()]/g, '').trim() + '...'
+      const tags =
+        Array.isArray(args.tags) && args.tags.length > 0
+          ? args.tags.map((t: any) => String(t).trim())
+          : ['AI', 'Tech']
+      const published = args.published !== false // default: true
+
+      const baseSlug =
+        (args.slug && String(args.slug).trim()) ||
+        slugify(title, { lower: true, strict: true }) ||
+        `post-${Date.now()}`
+
+      // Check slug uniqueness
+      const [existing] = await db
+        .select()
+        .from(schema.posts)
+        .where(eq(schema.posts.slug, baseSlug))
+        .limit(1)
+
+      const finalSlug = existing ? `${baseSlug}-${Date.now()}` : baseSlug
+
+      const [res] = await db.insert(schema.posts).values({
+        slug: finalSlug,
+        title,
+        category,
+        excerpt,
+        content,
+        cover: args.cover || '/projects/ai-support-agent.png',
+        tags,
+        published,
+        publishedAt: published ? new Date() : null,
+      })
+
+      try {
+        const { revalidatePath } = await import('next/cache')
+        revalidatePath('/', 'layout')
+        revalidatePath('/blog')
+        revalidatePath(`/blog/${finalSlug}`)
+      } catch {
+        // Safe if executed outside Next.js request context
+      }
+
+      const postUrl = `https://my-portfolio-golam-kibriyas-projects.vercel.app/blog/${finalSlug}`
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                message: `Blog post "${title}" has been created and published successfully!`,
+                id: res.insertId,
+                title,
+                slug: finalSlug,
+                category,
+                tags,
+                published,
+                url: postUrl,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      }
+    }
+
     case 'get_portfolio_profile': {
       const profile = await getProfile()
       return {
