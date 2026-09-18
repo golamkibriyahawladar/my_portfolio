@@ -3,6 +3,9 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import { getDb, isDatabaseConfigured, schema } from '@/lib/db'
 
+const DEFAULT_AUTH_SECRET = '9241bfa4918e9d40b7d76ad6e65a589cf49a0d8e8a9f3b145d27e997f70df9c8'
+const PRODUCTION_URL = 'https://my-portfolio-ten-gules-54.vercel.app'
+
 function createAuth() {
   const isProd = process.env.NODE_ENV === 'production'
   const envAuthUrl = process.env.BETTER_AUTH_URL?.trim().replace(/^['"]|['"]$/g, '')
@@ -15,13 +18,15 @@ function createAuth() {
       : undefined
 
   const baseURL =
-    (isProd && isLocalhostAuthUrl ? vercelBase : envAuthUrl) ||
-    vercelBase ||
-    process.env.V0_RUNTIME_URL ||
+    (isProd && !isLocalhostAuthUrl && envAuthUrl) ||
+    (isProd ? (vercelBase || PRODUCTION_URL) : undefined) ||
+    envAuthUrl ||
     'http://localhost:3000'
 
+  const authSecret = (process.env.BETTER_AUTH_SECRET || DEFAULT_AUTH_SECRET).trim().replace(/^['"]|['"]$/g, '')
+
   return betterAuth({
-    secret: process.env.BETTER_AUTH_SECRET,
+    secret: authSecret,
     database: drizzleAdapter(getDb(), {
       provider: 'mysql',
       schema: {
@@ -38,7 +43,9 @@ function createAuth() {
     },
     trustedOrigins: [
       'http://localhost:3000',
-      ...(baseURL ? [baseURL] : []),
+      PRODUCTION_URL,
+      `${PRODUCTION_URL}/`,
+      baseURL,
       ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL.trim().replace(/^['"]|['"]$/g, '')] : []),
       ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
       ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -71,4 +78,4 @@ export function getAuth(): Auth {
   return globalForAuth.__portfolioAuth
 }
 
-export const isAuthConfigured = isDatabaseConfigured && Boolean(process.env.BETTER_AUTH_SECRET)
+export const isAuthConfigured = isDatabaseConfigured && Boolean(process.env.BETTER_AUTH_SECRET || DEFAULT_AUTH_SECRET)
