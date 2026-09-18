@@ -121,9 +121,15 @@ export function ApiKeysClient({ initialKeys, baseUrl }: ApiKeysClientProps) {
     setGeneratingJwt(true)
     try {
       const res = await generateAutomationJwt(jwtName, jwtExpiresIn)
-      if (res.success) {
-        setGeneratedJwt(res)
+      if (res.success && res.token && res.authHeader) {
+        setGeneratedJwt({
+          token: res.token,
+          authHeader: res.authHeader,
+          expiresAt: res.expiresAt || 'never',
+        })
         toast.success('JWT Token generated successfully for n8n!')
+      } else {
+        toast.error(res.error || 'Failed to generate JWT token')
       }
     } catch (err: any) {
       toast.error(err?.message || 'Failed to generate JWT')
