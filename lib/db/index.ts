@@ -12,10 +12,11 @@ function createDb(): Db {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set. Add your MySQL connection string in project settings.')
   }
+  const cleanUri = process.env.DATABASE_URL.trim().replace(/^['"]|['"]$/g, '')
   const pool =
     globalForDb.__portfolioPool ??
     mysql.createPool({
-      uri: process.env.DATABASE_URL,
+      uri: cleanUri,
       connectionLimit: 5,
       waitForConnections: true,
     })

@@ -4,7 +4,24 @@ import { nextCookies } from 'better-auth/next-js'
 import { getDb, isDatabaseConfigured, schema } from '@/lib/db'
 
 function createAuth() {
+  const isProd = process.env.NODE_ENV === 'production'
+  const envAuthUrl = process.env.BETTER_AUTH_URL?.trim().replace(/^['"]|['"]$/g, '')
+  const isLocalhostAuthUrl = envAuthUrl?.includes('localhost') || envAuthUrl?.includes('127.0.0.1')
+
+  const vercelBase = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : undefined
+
+  const baseURL =
+    (isProd && isLocalhostAuthUrl ? vercelBase : envAuthUrl) ||
+    vercelBase ||
+    process.env.V0_RUNTIME_URL ||
+    'http://localhost:3000'
+
   return betterAuth({
+    secret: process.env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(getDb(), {
       provider: 'mysql',
       schema: {
@@ -14,34 +31,18 @@ function createAuth() {
         verification: schema.verification,
       },
     }),
-    baseURL:
-      process.env.BETTER_AUTH_URL ??
-      (process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : process.env.V0_RUNTIME_URL),
+    baseURL,
     emailAndPassword: {
       enabled: true,
       autoSignIn: true,
     },
     trustedOrigins: [
-      ...(process.env.NODE_ENV === 'development'
-        ? [
-            'http://localhost:3000',
-            ...(process.env.V0_RUNTIME_URL ? [process.env.V0_RUNTIME_URL] : []),
-            ...(process.env.V0_DEV_APP_URL ? [process.env.V0_DEV_APP_URL] : []),
-            ...(process.env.V0_BUILD_URL ? [process.env.V0_BUILD_URL] : []),
-            ...(process.env.V0_SANDBOX_URL ? [process.env.V0_SANDBOX_URL] : []),
-          ]
-        : []),
-      ...(process.env.NODE_ENV === 'production'
-        ? [
-            ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
-            ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
-              ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
-              : []),
-          ]
+      'http://localhost:3000',
+      ...(baseURL ? [baseURL] : []),
+      ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL.trim().replace(/^['"]|['"]$/g, '')] : []),
+      ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+      ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
         : []),
     ],
     session: {
