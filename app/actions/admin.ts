@@ -405,3 +405,28 @@ export async function getApiKeys() {
 
   return db.select().from(schema.apiKeys).orderBy(desc(schema.apiKeys.createdAt))
 }
+
+export async function generateAutomationJwt(name: string = 'n8n-automation', expiresIn: string = '365d') {
+  await requireAdmin()
+  const { signJwt, verifyJwt } = await import('@/lib/jwt')
+  const token = signJwt(
+    {
+      sub: 'admin',
+      name: name.trim() || 'n8n-automation',
+      scope: 'blog:read blog:write',
+      issuer: 'portfolio-cms',
+    },
+    undefined,
+    expiresIn
+  )
+
+  const verification = verifyJwt(token)
+  return {
+    success: true,
+    token,
+    authHeader: `Bearer ${token}`,
+    expiresAt: verification.payload?.exp
+      ? new Date(verification.payload.exp * 1000).toISOString()
+      : 'never',
+  }
+}

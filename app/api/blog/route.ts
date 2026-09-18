@@ -16,6 +16,7 @@ const createPostSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   published: z.boolean().optional().default(false),
   publishedAt: z.string().optional().nullable(),
+  updateIfExists: z.boolean().optional().default(false),
 })
 
 // GET /api/blog — List all posts
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
       tags,
       published,
       publishedAt,
+      updateIfExists,
     } = parsed.data
 
     const slug = customSlug?.trim() || slugify(title, { lower: true, strict: true })
@@ -75,18 +77,53 @@ export async function POST(request: NextRequest) {
 
     // Check slug uniqueness
     const [existing] = await db
-      .select({ id: schema.posts.id })
+      .select()
       .from(schema.posts)
       .where(eq(schema.posts.slug, slug))
       .limit(1)
-
-    const finalSlug = existing ? `${slug}-${Date.now()}` : slug
 
     const publishDate = published
       ? publishedAt
         ? new Date(publishedAt)
         : new Date()
       : null
+
+    if (existing && updateIfExists) {
+      await db
+        .update(schema.posts)
+        .set({
+          title,
+          category,
+          excerpt,
+          content,
+          cover: cover || null,
+          tags,
+          published,
+          publishedAt: publishDate || existing.publishedAt,
+        })
+        .where(eq(schema.posts.id, existing.id))
+
+      revalidatePath('/', 'layout')
+      revalidatePath('/blog')
+      revalidatePath(`/blog/${slug}`)
+
+      const [updatedPost] = await db
+        .select()
+        .from(schema.posts)
+        .where(eq(schema.posts.id, existing.id))
+        .limit(1)
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Post updated successfully (upsert)',
+          data: updatedPost,
+        },
+        { status: 200 }
+      )
+    }
+
+    const finalSlug = existing ? `${slug}-${Date.now()}` : slug
 
     const [res] = await db.insert(schema.posts).values({
       slug: finalSlug,

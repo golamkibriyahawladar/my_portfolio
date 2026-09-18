@@ -28,6 +28,8 @@ export function AccentPicker() {
 
   const applyAccent = (idx: number) => {
     const accent = ACCENTS[idx]
+    document.documentElement.style.setProperty('--brand-accent', accent.color)
+    document.documentElement.style.setProperty('--brand-accent-glow', accent.glow)
     document.documentElement.style.setProperty('--accent', accent.color)
     document.documentElement.style.setProperty('--accent-glow', accent.glow)
     localStorage.setItem('portfolio-accent', accent.color)

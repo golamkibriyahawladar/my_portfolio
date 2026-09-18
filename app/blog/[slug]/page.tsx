@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, Calendar, ArrowRight, User } from 'lucide-react'
-import { PageShell } from '@/components/dark-studio/page-shell'
+import { BlogShell } from '@/components/blog/blog-shell'
 import { Markdown } from '@/components/markdown'
 import { Reveal } from '@/components/reveal'
 import { getPostBySlug, getProfile, getPublishedPosts } from '@/lib/content'
@@ -10,13 +10,23 @@ import { formatDate } from '@/lib/format'
 import {
   calculateReadingTime,
   extractHeadings,
+  extractFaqs,
   generateArticleSchema,
   generateBreadcrumbSchema,
 } from '@/lib/geo'
+import { FaqSchema } from '@/components/json-ld/faq-schema'
+import { ProductCTA } from '@/components/product-cta'
+import { NewsletterCTA } from '@/components/newsletter-cta'
 import { TableOfContents } from '@/components/table-of-contents'
 import { ReadingProgressBar } from '@/components/reading-progress-bar'
 
-export const dynamic = 'force-dynamic'
+// SSG: Pre-render all blog posts at build time, revalidate every 60 min (ISR)
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  const posts = await getPublishedPosts()
+  return posts.map((post) => ({ slug: post.slug }))
+}
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>
@@ -24,7 +34,7 @@ interface BlogPostPageProps {
 
 export async function generateMetadata({ params }: BlogPostPageProps) {
   const { slug } = await params
-  const post = await getPostBySlug(slug)
+  const [post, profile] = await Promise.all([getPostBySlug(slug), getProfile()])
   if (!post) return { title: 'Post not found' }
 
   const baseUrl =
@@ -52,6 +62,9 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
       publishedTime: post.publishedAt
         ? new Date(post.publishedAt).toISOString()
         : new Date(post.createdAt).toISOString(),
+      modifiedTime: new Date(post.updatedAt).toISOString(),
+      authors: [profile.name],
+      section: post.category || 'Technology',
       tags: post.tags,
       images: [
         {
@@ -87,6 +100,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   const readingTime = calculateReadingTime(post.content)
   const headings = extractHeadings(post.content)
+  const faqs = extractFaqs(post.content)
 
   // Find 2 related posts matching category or tags
   const relatedPosts = allPosts
@@ -115,7 +129,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   ])
 
   return (
-    <PageShell profile={profile}>
+    <BlogShell profile={profile}>
       {/* Top reading scroll progress bar */}
       <ReadingProgressBar />
 
@@ -128,6 +142,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
+      {faqs.length > 0 && <FaqSchema items={faqs} />}
 
       <article className="mx-auto max-w-6xl px-6 md:px-10 py-6">
         {/* Navigation & Metadata Header */}
@@ -226,8 +241,47 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Article Markdown Body */}
           <div className="lg:col-span-9 order-2 lg:order-2 min-w-0">
             <Reveal delay={0.15}>
-              <Markdown content={post.content} />
+              <Markdown content={post.content} className="max-w-none lg:max-w-[780px]" />
             </Reveal>
+
+            {/* Targeted Digital Product Offer / Blueprint Card */}
+            {(post.category?.toLowerCase().includes('voice') ||
+              (Array.isArray(post.tags) && post.tags.some((t) => t.toLowerCase().includes('voice')))) && (
+              <ProductCTA
+                type="blueprint"
+                title="Production AI Voice Agent Architecture (Vapi + Twilio + n8n)"
+                description="The exact production JSON workflows, Twilio SIP transfer scripts, prompt guardrails, and latency optimization guide used by enterprise call centers."
+                href="https://yourbrand.gumroad.com/l/voice-agent-blueprint"
+                image="/projects/ai-support-agent.png"
+                price="97"
+                originalPrice="197"
+                rating={4.9}
+                reviewCount={42}
+                badge="BESTSELLER"
+                buttonText="Download Complete Blueprint"
+              />
+            )}
+
+            {(post.category?.toLowerCase().includes('automation') ||
+              (Array.isArray(post.tags) && post.tags.some((t) => t.toLowerCase().includes('n8n')))) &&
+              !post.category?.toLowerCase().includes('voice') && (
+              <ProductCTA
+                type="template"
+                title="Self-Healing n8n Multi-Agent Workflow Bundle"
+                description="Pre-built n8n JSON nodes for runtime schema drift detection, Claude 3.5 reflection repair loops, and idempotency circuit breakers."
+                href="https://yourbrand.gumroad.com/l/n8n-self-healing-bundle"
+                image="/projects/ecommerce-store.png"
+                price="67"
+                originalPrice="149"
+                rating={5.0}
+                reviewCount={29}
+                badge="POPULAR"
+                buttonText="Get Instant Access"
+              />
+            )}
+
+            {/* In-Article Lead Magnet / Newsletter CTA */}
+            <NewsletterCTA />
 
             {/* Author Bio Card at Bottom */}
             <div className="mt-16 p-6 sm:p-8 rounded-2xl border border-white/10 bg-[#121216]/60 flex flex-col sm:flex-row items-start sm:items-center gap-6">
@@ -302,6 +356,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
         </div>
       </article>
-    </PageShell>
+    </BlogShell>
   )
 }

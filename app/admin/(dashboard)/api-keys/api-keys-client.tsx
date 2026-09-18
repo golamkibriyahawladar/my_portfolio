@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react'
 import { ApiKey } from '@/lib/db/schema'
-import { createApiKey, deleteApiKey } from '@/app/actions/admin'
+import { createApiKey, deleteApiKey, generateAutomationJwt } from '@/app/actions/admin'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurlSnippet } from '@/components/admin/curl-snippet'
 import { ConfirmDialog } from '@/components/admin/confirm-dialog'
-import { Key, Plus, Trash2, Copy, Check, ShieldAlert, Sparkles, Terminal } from 'lucide-react'
+import { Key, Plus, Trash2, Copy, Check, ShieldAlert, Sparkles, Terminal, Workflow, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -24,6 +24,18 @@ export function ApiKeysClient({ initialKeys, baseUrl }: ApiKeysClientProps) {
   const [creating, setCreating] = useState(false)
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState(false)
+
+  // JWT Token generation state for n8n
+  const [jwtName, setJwtName] = useState('n8n-automation-agent')
+  const [jwtExpiresIn, setJwtExpiresIn] = useState('365d')
+  const [generatingJwt, setGeneratingJwt] = useState(false)
+  const [generatedJwt, setGeneratedJwt] = useState<{
+    token: string
+    authHeader: string
+    expiresAt: string
+  } | null>(null)
+  const [copiedJwt, setCopiedJwt] = useState(false)
+  const [copiedN8nConfig, setCopiedN8nConfig] = useState(false)
 
   // Selected key for cURL examples (defaults to first key if available)
   const [selectedKeyId, setSelectedKeyId] = useState<number | null>(
@@ -102,6 +114,75 @@ export function ApiKeysClient({ initialKeys, baseUrl }: ApiKeysClientProps) {
   const maskKey = (rawKey: string) => {
     if (rawKey.length < 12) return rawKey
     return `${rawKey.slice(0, 7)}••••••••••••${rawKey.slice(-4)}`
+  }
+
+  const handleGenerateJwt = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGeneratingJwt(true)
+    try {
+      const res = await generateAutomationJwt(jwtName, jwtExpiresIn)
+      if (res.success) {
+        setGeneratedJwt(res)
+        toast.success('JWT Token generated successfully for n8n!')
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to generate JWT')
+    } finally {
+      setGeneratingJwt(false)
+    }
+  }
+
+  const copyJwt = async () => {
+    if (!generatedJwt) return
+    await navigator.clipboard.writeText(generatedJwt.token)
+    setCopiedJwt(true)
+    toast.success('Copied JWT Token to clipboard')
+    setTimeout(() => setCopiedJwt(false), 2000)
+  }
+
+  const copyN8nConfig = async () => {
+    const activeToken = generatedJwt?.token || activeKeyDisplay
+    const n8nJson = {
+      name: 'Post to Portfolio Blog',
+      type: 'n8n-nodes-base.httpRequest',
+      typeVersion: 4.2,
+      position: [250, 300],
+      parameters: {
+        method: 'POST',
+        url: `${baseUrl}/api/blog`,
+        sendHeaders: true,
+        headerParameters: {
+          parameters: [
+            {
+              name: 'Authorization',
+              value: `Bearer ${activeToken}`,
+            },
+            {
+              name: 'Content-Type',
+              value: 'application/json',
+            },
+          ],
+        },
+        sendBody: true,
+        contentType: 'json',
+        bodyParameters: {
+          parameters: [
+            { name: 'title', value: '={{ $json.title }}' },
+            { name: 'slug', value: '={{ $json.slug }}' },
+            { name: 'category', value: '={{ $json.category || "AI & Automation" }}' },
+            { name: 'excerpt', value: '={{ $json.excerpt }}' },
+            { name: 'content', value: '={{ $json.content }}' },
+            { name: 'tags', value: '={{ $json.tags || ["AI", "Automation"] }}' },
+            { name: 'published', value: true },
+            { name: 'updateIfExists', value: true },
+          ],
+        },
+      },
+    }
+    await navigator.clipboard.writeText(JSON.stringify(n8nJson, null, 2))
+    setCopiedN8nConfig(true)
+    toast.success('Copied n8n HTTP Request node configuration!')
+    setTimeout(() => setCopiedN8nConfig(false), 2000)
   }
 
   return (
@@ -224,6 +305,177 @@ export function ApiKeysClient({ initialKeys, baseUrl }: ApiKeysClientProps) {
             </table>
           </div>
         )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* n8n Automation & Webhook Integration (Bearer API Key + JWT) */}
+      {/* ========================================================================= */}
+      <div className="space-y-6 rounded-2xl border border-white/10 bg-[#121216]/70 p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-[#a3e635]/10 border border-[#a3e635]/20 text-[#a3e635]">
+                <Workflow className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                n8n Automation & Webhook Integration
+              </h3>
+            </div>
+            <p className="text-xs text-white/50 mt-1.5 leading-relaxed">
+              Safely create and update large 2,000+ word technical blog posts directly from n8n using <strong>Bearer API Keys</strong> or signed <strong>JWT tokens</strong>.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Dual Auth (Bearer + JWT) Ready
+            </span>
+          </div>
+        </div>
+
+        {/* 1. JWT Generator Card */}
+        <div className="rounded-xl border border-white/10 bg-[#0a0a0d] p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#a3e635]" />
+                Generate Signed JWT for n8n Workflow
+              </h4>
+              <p className="text-xs text-white/50 mt-0.5">
+                Generates a cryptographically signed HS256 JWT token with custom expiry. Use in n8n&apos;s Authorization header.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleGenerateJwt} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            <div className="sm:col-span-6 space-y-1.5">
+              <Label className="text-xs text-white/70">Token Label / Agent Name</Label>
+              <Input
+                value={jwtName}
+                onChange={(e) => setJwtName(e.target.value)}
+                placeholder="e.g. n8n-shopify-blog-bot"
+                className="bg-[#121216] border-white/10 text-white text-xs h-9"
+              />
+            </div>
+            <div className="sm:col-span-3 space-y-1.5">
+              <Label className="text-xs text-white/70">Expiration</Label>
+              <select
+                value={jwtExpiresIn}
+                onChange={(e) => setJwtExpiresIn(e.target.value)}
+                className="w-full bg-[#121216] border border-white/10 rounded-lg text-xs text-white p-2 h-9 outline-none"
+              >
+                <option value="30d">30 Days</option>
+                <option value="90d">90 Days</option>
+                <option value="365d">1 Year (365 Days)</option>
+                <option value="never">Never Expires</option>
+              </select>
+            </div>
+            <div className="sm:col-span-3">
+              <Button
+                type="submit"
+                disabled={generatingJwt}
+                className="w-full bg-[#a3e635] text-black hover:bg-[#bef264] text-xs font-semibold h-9"
+              >
+                {generatingJwt ? 'Generating...' : 'Generate JWT Token'}
+              </Button>
+            </div>
+          </form>
+
+          {/* Generated JWT Display */}
+          {generatedJwt && (
+            <div className="mt-4 p-4 rounded-lg border border-[#a3e635]/30 bg-[#a3e635]/5 space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#a3e635]" />
+                  JWT Token Active (Expires: {generatedJwt.expiresAt === 'never' ? 'Never' : new Date(generatedJwt.expiresAt).toLocaleDateString()})
+                </span>
+                <Button
+                  size="sm"
+                  onClick={copyJwt}
+                  className="bg-[#a3e635] text-black hover:bg-[#bef264] text-xs font-semibold h-7 px-3 gap-1.5"
+                >
+                  {copiedJwt ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copiedJwt ? 'Copied Token' : 'Copy JWT'}
+                </Button>
+              </div>
+              <div className="p-2.5 rounded bg-black/50 border border-white/10 font-mono text-[11px] text-[#bef264] break-all select-all">
+                {generatedJwt.token}
+              </div>
+              <p className="text-[11px] text-white/40">
+                In n8n, set Header: <code className="text-white/70">Authorization: Bearer {generatedJwt.token.slice(0, 16)}...</code>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 2. n8n HTTP Request Setup Guide */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-white/10 bg-[#0a0a0d] p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                n8n HTTP Request Node Configuration
+              </h4>
+              <button
+                type="button"
+                onClick={copyN8nConfig}
+                className="flex items-center gap-1.5 text-[11px] text-[#a3e635] hover:underline"
+              >
+                {copiedN8nConfig ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                Copy Node JSON
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs font-mono">
+              <div className="flex justify-between py-1 border-b border-white/5">
+                <span className="text-white/40">Method:</span>
+                <span className="text-emerald-400 font-bold">POST</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-white/5">
+                <span className="text-white/40">URL:</span>
+                <span className="text-white/90 text-right truncate max-w-[220px]">{baseUrl}/api/blog</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-white/5">
+                <span className="text-white/40">Authentication:</span>
+                <span className="text-white/80">Header Auth</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-white/5">
+                <span className="text-white/40">Header 1:</span>
+                <span className="text-white/80">Authorization: Bearer &lt;TOKEN&gt;</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-white/5">
+                <span className="text-white/40">Header 2:</span>
+                <span className="text-white/80">Content-Type: application/json</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-white/40">Upsert Enabled:</span>
+                <span className="text-lime-400 font-semibold">&quot;updateIfExists&quot;: true</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-white/50 pt-2 border-t border-white/10">
+              💡 Tip: Click <strong>&quot;Copy Node JSON&quot;</strong> and paste it directly into your n8n canvas using <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">Ctrl+V</kbd>.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#0a0a0d] p-5 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+              Sample n8n JSON Body Payload
+            </h4>
+            <div className="p-3 rounded-lg bg-black/60 border border-white/10 font-mono text-[11px] text-white/75 overflow-x-auto max-h-[220px] leading-relaxed">
+              <pre>{`{
+  "title": "How to Build an AI Support Voice Agent",
+  "slug": "how-to-build-ai-support-voice-agent",
+  "category": "AI Voice Agents",
+  "excerpt": "A complete 2,000+ word technical guide to zero-latency telephony.",
+  "content": "## 1. Architecture Overview\\n\\nCaller -> Twilio -> Vapi -> Apps Script\\n\\n<ProductCheckout title='Complete Blueprint' price='$97' productId='voice-bp' />",
+  "tags": ["AI Voice", "Vapi", "Twilio", "n8n"],
+  "published": true,
+  "updateIfExists": true
+}`}</pre>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Ready-to-copy cURL Commands */}

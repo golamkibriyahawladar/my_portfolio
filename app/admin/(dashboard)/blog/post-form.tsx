@@ -149,7 +149,20 @@ export function PostForm({ initialData }: PostFormProps) {
         />
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-white/70">Excerpt / Meta Description (SEO & GEO summary)</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-white/70">Excerpt / Meta Description (SEO & Google snippet)</Label>
+            <span
+              className={`text-[10px] font-mono ${
+                excerpt.length >= 120 && excerpt.length <= 160
+                  ? 'text-lime-400 font-semibold'
+                  : excerpt.length > 160
+                  ? 'text-amber-400 font-semibold'
+                  : 'text-white/40'
+              }`}
+            >
+              {excerpt.length} / 160 chars (Recommended: 120-160)
+            </span>
+          </div>
           <Textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
@@ -183,16 +196,21 @@ export function PostForm({ initialData }: PostFormProps) {
 
       {/* Markdown Content Editor */}
       <div className="rounded-xl border border-white/10 bg-[#121216]/60 p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-white">Article Content (Markdown)</h3>
-        <p className="text-xs text-white/50">
-          Write using headings (`##`), code blocks (` ```ts `), bold keywords, and bullet points to maximize AI engine citations.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Article Content (Markdown & MDX)</h3>
+            <p className="text-xs text-white/50">
+              For high-traffic search ranking, target 2,000+ words with real code, diagrams, and product CTA cards.
+            </p>
+          </div>
+        </div>
 
         <MarkdownEditor
           value={content}
           onChange={setContent}
-          rows={20}
-          placeholder="## Introduction&#10;&#10;Start with a clear, authoritative direct answer for GEO...&#10;&#10;## Key takeaways&#10;&#10;- Point 1&#10;- Point 2"
+          draftKey={isEditing && initialData ? `admin_blog_draft_${initialData.id}` : 'admin_blog_draft_new'}
+          rows={26}
+          placeholder="## 1. Problem Overview&#10;&#10;Start with a clear, authoritative direct answer...&#10;&#10;## 2. Production Architecture&#10;&#10;Insert ASCII diagram or code block...&#10;&#10;<ProductCheckout title='Complete Blueprint' price='$97' productId='my-blueprint' />"
         />
       </div>
     </form>

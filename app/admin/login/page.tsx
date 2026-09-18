@@ -7,13 +7,14 @@ import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react'
+import { Lock, Mail, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('golamkibriyahawladar@gmail.com')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -22,10 +23,13 @@ export default function AdminLoginPage() {
     setError('')
     setLoading(true)
 
+    const cleanEmail = email.trim()
+    const cleanPassword = password.trim()
+
     try {
       const res = await signIn.email({
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
       })
 
       if (res.error) {
@@ -41,6 +45,11 @@ export default function AdminLoginPage() {
       setError(err?.message || 'Something went wrong')
       setLoading(false)
     }
+  }
+
+  const fillDefaultPassword = () => {
+    setPassword('admin123456')
+    setError('')
   }
 
   return (
@@ -60,8 +69,11 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
-              {error}
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center space-y-1">
+              <div>{error}</div>
+              <div className="text-[11px] text-white/50">
+                Default password: <button type="button" onClick={fillDefaultPassword} className="text-[#a3e635] underline underline-offset-2">admin123456</button>
+              </div>
             </div>
           )}
 
@@ -82,17 +94,34 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-white/70">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-white/70">Password</Label>
+                <button
+                  type="button"
+                  onClick={fillDefaultPassword}
+                  className="text-[10px] text-white/40 hover:text-[#a3e635] transition-colors"
+                >
+                  Autofill password
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 bg-[#14141a] border-white/10 text-white text-xs h-10 focus-visible:border-[#a3e635]/50 focus-visible:ring-1 focus-visible:ring-[#a3e635]/30"
+                  className="pl-9 pr-9 bg-[#14141a] border-white/10 text-white text-xs h-10 focus-visible:border-[#a3e635]/50 focus-visible:ring-1 focus-visible:ring-[#a3e635]/30"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

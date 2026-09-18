@@ -2,6 +2,43 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
+/* ── Syntax Highlighting Theme (highlight.js) ─────────────────────────── */
+.hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+.hljs-comment,
+.hljs-meta { color: #6b7280; font-style: italic; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in { color: #c084fc; }
+.hljs-string,
+.hljs-attr,
+.hljs-addition { color: #a3e635; }
+.hljs-number,
+.hljs-literal { color: #f59e0b; }
+.hljs-function .hljs-title,
+.hljs-title.function_,
+.hljs-section { color: #60a5fa; }
+.hljs-type,
+.hljs-title.class_,
+.hljs-class .hljs-title { color: #34d399; }
+.hljs-variable,
+.hljs-template-variable { color: #f472b6; }
+.hljs-property { color: #93c5fd; }
+.hljs-params { color: #fbbf24; }
+.hljs-regexp { color: #fb923c; }
+.hljs-deletion { color: #f87171; }
+.hljs-tag { color: #f87171; }
+.hljs-name { color: #f87171; }
+.hljs-attribute { color: #a3e635; }
+.hljs-symbol,
+.hljs-bullet { color: #a3e635; }
+.hljs-punctuation { color: #9ca3af; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
+
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -50,6 +87,8 @@
 }
 
 :root {
+  --brand-accent: #a3e635;
+  --brand-accent-glow: 163, 230, 53;
   --accent: #a3e635;
   --accent-glow: 163, 230, 53;
   color-scheme: light;
@@ -86,40 +125,48 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* Dynamic Accent Theme Overrides */
+/* Dynamic Accent Theme Overrides (Uses --brand-accent to avoid clash with Shadcn --accent) */
 .text-lime-300,
-.text-\[\#a3e635\] {
-  color: var(--accent) !important;
+.text-\[\#a3e635\],
+.text-\[\#bef264\] {
+  color: var(--brand-accent, #a3e635) !important;
 }
 
 .bg-lime-300,
 .bg-\[\#a3e635\] {
-  background-color: var(--accent) !important;
+  background-color: var(--brand-accent, #a3e635) !important;
+  color: #000000 !important;
 }
 
 .border-lime-300,
 .border-\[\#a3e635\] {
-  border-color: var(--accent) !important;
+  border-color: var(--brand-accent, #a3e635) !important;
 }
 
 .hover\:text-lime-300:hover,
+.hover\:text-\[\#a3e635\]:hover,
 .group:hover .group-hover\:text-lime-300,
 .group-hover\:text-lime-300:hover {
-  color: var(--accent) !important;
+  color: var(--brand-accent, #a3e635) !important;
 }
 
 .hover\:bg-lime-300:hover,
+.hover\:bg-\[\#bef264\]:hover,
 .group-hover\:bg-lime-300:hover {
-  background-color: var(--accent) !important;
+  background-color: #bef264 !important;
+  color: #000000 !important;
 }
 
 .hover\:border-lime-300:hover,
+.hover\:border-\[\#a3e635\]:hover,
 .group-hover\:border-lime-300:hover {
-  border-color: var(--accent) !important;
+  border-color: var(--brand-accent, #a3e635) !important;
 }
 
 .dark {
   color-scheme: dark;
+  --brand-accent: #a3e635;
+  --brand-accent-glow: 163, 230, 53;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

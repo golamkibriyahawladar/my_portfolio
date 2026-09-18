@@ -27,7 +27,17 @@ async function main() {
     await db.insert(schema.skills).values(skill)
   }
   for (const { id: _id, createdAt: _c, updatedAt: _u, ...post } of demoPostRows) {
-    await db.insert(schema.posts).values(post).onDuplicateKeyUpdate({ set: { title: post.title } })
+    await db.insert(schema.posts).values(post).onDuplicateKeyUpdate({
+      set: {
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        category: post.category,
+        tags: post.tags,
+        published: post.published,
+        publishedAt: post.publishedAt,
+      },
+    })
   }
 
   // Seed administrator account

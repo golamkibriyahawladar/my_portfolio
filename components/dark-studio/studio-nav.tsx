@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Command } from 'lucide-react'
 import { AccentPicker } from '@/components/accent-picker'
-import { SoundToggle } from '@/components/sound-toggle'
 
 const links = [
   { label: 'Work', href: '/#work' },
@@ -61,7 +60,6 @@ export function StudioNav({ name, email }: { name: string; email: string }) {
             </button>
 
             <AccentPicker />
-            <SoundToggle />
 
             <a href={`mailto:${email}`} className="hidden transition-opacity hover:opacity-60 lg:block">
               {email}

@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/custom-cursor'
 import { ParticleCanvas } from '@/components/particle-canvas'
 import { CommandPalette } from '@/components/command-palette'
-import { VoiceGuide } from '@/components/voice-guide'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -27,6 +26,9 @@ export const metadata: Metadata = {
     'Portfolio of Golam Kibriya Hawladar: high-performance websites, autonomous AI agent architectures, and Generative Engine Optimization.',
   alternates: {
     canonical: baseUrl,
+    types: {
+      'application/rss+xml': `${baseUrl}/feed.xml`,
+    },
   },
   openGraph: {
     title: 'Golam Kibriya Hawladar — Senior AI Engineer & Full-Stack Architect',
@@ -102,7 +104,6 @@ export default function RootLayout({
         <ParticleCanvas />
         <CustomCursor />
         <CommandPalette />
-        <VoiceGuide />
         {children}
         <Toaster richColors position="top-right" theme="dark" />
         {process.env.NODE_ENV === 'production' && <Analytics />}
