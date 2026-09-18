@@ -215,21 +215,51 @@ export async function POST(request: NextRequest) {
   return corsJson(response)
 }
 
-// ─── GET /api/mcp — SSE stream (unsupported in stateless mode) ─
-export async function GET() {
-  // Stateless server: return a helpful JSON error instead of SSE
-  return corsJson(
-    {
-      jsonrpc: '2.0',
-      id: 0,
-      error: {
-        code: -32000,
-        message:
-          'This MCP server operates in stateless HTTP mode. Use POST to send JSON-RPC requests.',
+// ─── GET /api/mcp — Discovery & SSE Handshake ────────────────
+export async function GET(request: NextRequest) {
+  const acceptHeader = request.headers.get('accept') || ''
+
+  // If client expects SSE (Server-Sent Events) stream
+  if (acceptHeader.includes('text/event-stream')) {
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      start(controller) {
+        // Send initial MCP endpoint announcement event
+        controller.enqueue(encoder.encode(`event: endpoint\ndata: /api/mcp\n\n`))
       },
+    })
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        ...CORS_HEADERS,
+      },
+    })
+  }
+
+  // Standard GET: return 200 OK with server info & capabilities for URL validation
+  return corsJson({
+    jsonrpc: '2.0',
+    result: {
+      protocolVersion: PROTOCOL_VERSION,
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { subscribe: false, listChanged: false },
+      },
+      serverInfo: MCP_SERVER_INFO,
+      tools: MCP_TOOLS,
     },
-    405
-  )
+  })
+}
+
+// ─── HEAD /api/mcp — Quick URL validation ping ───────────────
+export async function HEAD() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: CORS_HEADERS,
+  })
 }
 
 // ─── DELETE /api/mcp — Session termination (not needed) ────────
@@ -240,11 +270,10 @@ export async function DELETE() {
       id: 0,
       error: {
         code: -32000,
-        message:
-          'Session management is not supported in stateless mode.',
+        message: 'Session management is not supported in stateless mode.',
       },
     },
-    405
+    200
   )
 }
 
